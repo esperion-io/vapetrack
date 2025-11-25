@@ -1,20 +1,45 @@
 import { useUser } from '../context/UserContext';
-import { Award, Gift, Lock } from 'lucide-react';
+import { Award, Sparkles, Zap, Crown, Star, Heart, Flame, CloudRain, Rainbow, Smile } from 'lucide-react';
 
-const BADGES_META = {
-    'first_step': { title: 'First Step', desc: 'Logged your first puff', icon: '👣' },
-    'century_club': { title: 'Century Club', desc: 'Logged 100 puffs', icon: '💯' },
-    'saver': { title: 'Saver', desc: 'Saved your first $10', icon: '💰' },
-};
-
-const COUPONS = [
-    { id: 1, title: 'Free Pita Pit Smoothie', cost: 100, vendor: 'Pita Pit', color: '#16a34a' },
-    { id: 2, title: '10% Off Healthy Eats', cost: 250, vendor: 'Green Bar', color: '#ea580c' },
-    { id: 3, title: '$5 Voucher', cost: 500, vendor: 'Salad Stop', color: '#2563eb' },
+const REWARDS = [
+    { id: 'icon_star', name: '⭐ Star Icon', cost: 100, type: 'icon', icon: '⭐', description: 'Shiny star profile icon' },
+    { id: 'icon_fire', name: '🔥 Fire Icon', cost: 150, type: 'icon', icon: '🔥', description: 'Hot fire profile icon' },
+    { id: 'icon_cloud', name: '☁️ Cloud Icon', cost: 150, type: 'icon', icon: '☁️', description: 'Fluffy cloud profile icon' },
+    { id: 'icon_rainbow', name: '🌈 Rainbow Icon', cost: 200, type: 'icon', icon: '🌈', description: 'Colorful rainbow icon' },
+    { id: 'icon_crown', name: '👑 Crown Icon', cost: 300, type: 'icon', icon: '👑', description: 'Royal crown icon' },
+    { id: 'border_gold', name: '✨ Gold Border', cost: 250, type: 'border', description: 'Shining gold profile border' },
+    { id: 'border_rainbow', name: '🌟 Rainbow Border', cost: 400, type: 'border', description: 'Animated rainbow border' },
+    { id: 'effect_smoke', name: '💨 Smoke Effect', cost: 300, type: 'effect', description: 'Button smokes when pressed' },
+    { id: 'effect_sparkle', name: '✨ Sparkle Effect', cost: 350, type: 'effect', description: 'Sparkles on button press' },
+    { id: 'effect_confetti', name: '🎉 Confetti Effect', cost: 500, type: 'effect', description: 'Confetti burst on press' },
 ];
 
 const Rewards = () => {
-    const { badges, xp } = useUser();
+    const { xp, purchasedRewards, equippedRewards, purchaseReward, equipReward, unequipReward } = useUser();
+
+    const handlePurchase = (reward) => {
+        const success = purchaseReward(reward.id, reward.cost);
+        if (success) {
+            // Could add a success notification here
+            console.log(`Purchased ${reward.name}!`);
+        }
+    };
+
+    const handleEquip = (reward) => {
+        if (equippedRewards[reward.type] === reward.id) {
+            // Unequip if already equipped
+            unequipReward(reward.type);
+        } else {
+            // Equip
+            equipReward(reward.id, reward.type);
+        }
+    };
+
+    const groupedRewards = {
+        icons: REWARDS.filter(r => r.type === 'icon'),
+        borders: REWARDS.filter(r => r.type === 'border'),
+        effects: REWARDS.filter(r => r.type === 'effect'),
+    };
 
     return (
         <div className="container">
@@ -28,53 +53,196 @@ const Rewards = () => {
             }}>
                 <h2 style={{ fontSize: '2.5rem', fontWeight: '800' }}>{xp} XP</h2>
                 <p style={{ fontWeight: '600', opacity: 0.8 }}>LEVEL {Math.floor(xp / 100) + 1}</p>
+                <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.7 }}>
+                    Earn XP by staying below your old habit each day
+                </p>
             </div>
 
+            {/* Profile Icons */}
             <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Award size={20} color="var(--accent)" /> Badges
+                <Smile size={20} color="var(--accent)" /> Profile Icons
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '2rem' }}>
-                {Object.entries(BADGES_META).map(([key, meta]) => {
-                    const isUnlocked = badges.includes(key);
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '2rem' }}>
+                {groupedRewards.icons.map(reward => {
+                    const isPurchased = purchasedRewards.includes(reward.id);
+                    const canAfford = xp >= reward.cost;
+
                     return (
-                        <div key={key} className="card" style={{
-                            padding: '10px',
-                            textAlign: 'center',
-                            opacity: isUnlocked ? 1 : 0.5,
-                            background: isUnlocked ? 'rgba(45, 212, 191, 0.1)' : 'var(--bg-secondary)'
+                        <div key={reward.id} className="card" style={{
+                            padding: '1rem',
+                            opacity: isPurchased ? 0.6 : 1,
+                            background: isPurchased ? 'rgba(45, 212, 191, 0.1)' : 'var(--bg-secondary)',
+                            position: 'relative'
                         }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '4px' }}>{isUnlocked ? meta.icon : <Lock size={24} />}</div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: '600', lineHeight: '1.2' }}>{meta.title}</div>
+                            <div style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '0.5rem' }}>
+                                {reward.icon}
+                            </div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.25rem' }}>{reward.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                                {reward.description}
+                            </div>
+                            {isPurchased ? (
+                                <button
+                                    onClick={() => handleEquip(reward)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        background: equippedRewards.icon === reward.id ? 'var(--success)' : 'var(--bg-tertiary)',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '600',
+                                        textAlign: 'center',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {equippedRewards.icon === reward.id ? 'Equipped ✓' : 'Equip'}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => handlePurchase(reward)}
+                                    disabled={!canAfford}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        background: canAfford ? 'var(--primary)' : 'var(--bg-tertiary)',
+                                        color: canAfford ? '#fff' : 'var(--text-secondary)',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontWeight: '600',
+                                        fontSize: '0.85rem',
+                                        cursor: canAfford ? 'pointer' : 'not-allowed',
+                                        opacity: canAfford ? 1 : 0.5
+                                    }}
+                                >
+                                    {reward.cost} XP
+                                </button>
+                            )}
                         </div>
                     );
                 })}
             </div>
 
+            {/* Profile Borders */}
             <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Gift size={20} color="var(--accent)" /> Rewards Marketplace
+                <Sparkles size={20} color="var(--accent)" /> Profile Borders
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {COUPONS.map(coupon => {
-                    const canAfford = xp >= coupon.cost;
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '2rem' }}>
+                {groupedRewards.borders.map(reward => {
+                    const isPurchased = purchasedRewards.includes(reward.id);
+                    const canAfford = xp >= reward.cost;
+
                     return (
-                        <div key={coupon.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div key={reward.id} className="card" style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '1rem',
+                            background: isPurchased ? 'rgba(45, 212, 191, 0.1)' : 'var(--bg-secondary)',
+                            opacity: isPurchased ? 0.6 : 1
+                        }}>
                             <div>
-                                <div style={{ fontWeight: '600', color: coupon.color }}>{coupon.vendor}</div>
-                                <div>{coupon.title}</div>
+                                <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{reward.name}</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{reward.description}</div>
                             </div>
-                            <button
-                                disabled={!canAfford}
-                                style={{
-                                    background: canAfford ? 'var(--text-primary)' : 'var(--bg-tertiary)',
-                                    color: canAfford ? 'var(--bg-primary)' : 'var(--text-secondary)',
-                                    padding: '8px 16px',
-                                    borderRadius: '20px',
-                                    fontWeight: '600',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                {coupon.cost} XP
-                            </button>
+                            {isPurchased ? (
+                                <button
+                                    onClick={() => handleEquip(reward)}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: equippedRewards.border === reward.id ? 'var(--success)' : 'var(--bg-tertiary)',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {equippedRewards.border === reward.id ? 'Equipped ✓' : 'Equip'}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => handlePurchase(reward)}
+                                    disabled={!canAfford}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: canAfford ? 'var(--primary)' : 'var(--bg-tertiary)',
+                                        color: canAfford ? '#fff' : 'var(--text-secondary)',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        fontWeight: '600',
+                                        fontSize: '0.9rem',
+                                        cursor: canAfford ? 'pointer' : 'not-allowed',
+                                        opacity: canAfford ? 1 : 0.5
+                                    }}
+                                >
+                                    {reward.cost} XP
+                                </button>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Button Effects */}
+            <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={20} color="var(--accent)" /> Button Effects
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {groupedRewards.effects.map(reward => {
+                    const isPurchased = purchasedRewards.includes(reward.id);
+                    const canAfford = xp >= reward.cost;
+
+                    return (
+                        <div key={reward.id} className="card" style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '1rem',
+                            background: isPurchased ? 'rgba(45, 212, 191, 0.1)' : 'var(--bg-secondary)',
+                            opacity: isPurchased ? 0.6 : 1
+                        }}>
+                            <div>
+                                <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{reward.name}</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{reward.description}</div>
+                            </div>
+                            {isPurchased ? (
+                                <button
+                                    onClick={() => handleEquip(reward)}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: equippedRewards.effect === reward.id ? 'var(--success)' : 'var(--bg-tertiary)',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {equippedRewards.effect === reward.id ? 'Equipped ✓' : 'Equip'}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => handlePurchase(reward)}
+                                    disabled={!canAfford}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: canAfford ? 'var(--primary)' : 'var(--bg-tertiary)',
+                                        color: canAfford ? '#fff' : 'var(--text-secondary)',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        fontWeight: '600',
+                                        fontSize: '0.9rem',
+                                        cursor: canAfford ? 'pointer' : 'not-allowed',
+                                        opacity: canAfford ? 1 : 0.5
+                                    }}
+                                >
+                                    {reward.cost} XP
+                                </button>
+                            )}
                         </div>
                     );
                 })}

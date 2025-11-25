@@ -1,108 +1,186 @@
 import { useState } from 'react';
 import { Search, Camera, Check } from 'lucide-react';
 
-const MOCK_VAPES = [
-    { id: 1, name: 'Elf Bar BC5000', flavor: 'Watermelon Ice', puffs: 5000 },
-    { id: 2, name: 'Geek Bar Pulse', flavor: 'Juicy Peach', puffs: 15000 },
-    { id: 3, name: 'Lost Mary OS5000', flavor: 'Blue Razz Ice', puffs: 5000 },
-    { id: 4, name: 'Juul', flavor: 'Virginia Tobacco', puffs: 200 },
-    { id: 5, name: 'Vaporesso XROS', flavor: 'Refillable', puffs: null },
-];
-
 const VapeSelector = ({ onSelect }) => {
-    const [search, setSearch] = useState('');
-    const [isScanning, setIsScanning] = useState(false);
+    const [formData, setFormData] = useState({
+        size: '',
+        nicotine: '',
+        type: 'Pod',
+        cost: '',
+        cigarettesPerDay: '',
+        cigarettesPerPack: '',
+        packCost: ''
+    });
 
-    const filteredVapes = MOCK_VAPES.filter(v =>
-        v.name.toLowerCase().includes(search.toLowerCase()) ||
-        v.flavor.toLowerCase().includes(search.toLowerCase())
-    );
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.size || !formData.nicotine || !formData.cost || !formData.cigarettesPerDay || !formData.cigarettesPerPack || !formData.packCost) return;
 
-    const handleScan = () => {
-        setIsScanning(true);
-        // Mock scanning delay
-        setTimeout(() => {
-            setIsScanning(false);
-            setSearch('Elf Bar'); // Mock result
-        }, 2000);
+        onSelect({
+            ...formData,
+            size: parseFloat(formData.size),
+            nicotine: parseFloat(formData.nicotine),
+            cost: parseFloat(formData.cost),
+            name: `${formData.type} System (${formData.nicotine}mg)`, // Fallback name
+            flavor: 'Custom Setup', // Fallback flavor
+            cigarettesPerDay: parseInt(formData.cigarettesPerDay),
+            cigarettesPerPack: parseInt(formData.cigarettesPerPack),
+            packCost: parseFloat(formData.packCost)
+        });
+    };
+
+    const inputStyle = {
+        width: '100%',
+        padding: '16px',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--bg-tertiary)',
+        borderRadius: 'var(--radius-md)',
+        color: 'var(--text-primary)',
+        fontSize: '1rem',
+        marginBottom: '1rem',
+        outline: 'none',
+        transition: 'border-color 0.2s'
+    };
+
+    const labelStyle = {
+        display: 'block',
+        marginBottom: '0.5rem',
+        color: 'var(--text-secondary)',
+        fontSize: '0.9rem'
     };
 
     return (
-        <div className="card">
-            <h2 style={{ marginBottom: '1.5rem' }}>What are you vaping?</h2>
+        <div className="card" style={{ padding: '2rem' }}>
+            <h2 style={{ marginBottom: '0.5rem', fontSize: '1.8rem' }}>Vape Details</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                Enter your device details to track usage and cost accurately.
+            </p>
 
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                    <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            <form onSubmit={handleSubmit}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={labelStyle}>Vape Type</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                        {['Pen', 'Pod', 'Tank'].map(type => (
+                            <button
+                                key={type}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, type })}
+                                style={{
+                                    padding: '12px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    background: formData.type === type ? 'var(--primary)' : 'var(--bg-tertiary)',
+                                    color: formData.type === type ? '#fff' : 'var(--text-secondary)',
+                                    border: 'none',
+                                    fontWeight: '600',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                        <label style={labelStyle}>Size (ml)</label>
+                        <input
+                            type="number"
+                            placeholder="e.g. 2"
+                            value={formData.size}
+                            onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Nicotine (mg)</label>
+                        <input
+                            type="number"
+                            placeholder="e.g. 20"
+                            value={formData.nicotine}
+                            onChange={(e) => setFormData({ ...formData, nicotine: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label style={labelStyle}>Cost Per Each ($)</label>
                     <input
-                        type="text"
-                        placeholder="Search brand or flavor..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '12px 12px 12px 40px',
-                            background: 'var(--bg-primary)',
-                            border: '1px solid var(--bg-tertiary)',
-                            borderRadius: 'var(--radius-md)',
-                            color: 'var(--text-primary)'
-                        }}
+                        type="number"
+                        placeholder="e.g. 15.00"
+                        value={formData.cost}
+                        onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                        style={inputStyle}
+                        required
                     />
                 </div>
+
+                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--bg-tertiary)' }}>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Smoking Habits</h3>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                        Update your baseline to track savings accurately.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div>
+                            <label style={labelStyle}>Cigs Per Day</label>
+                            <input
+                                type="number"
+                                placeholder="e.g. 15"
+                                value={formData.cigarettesPerDay}
+                                onChange={(e) => setFormData({ ...formData, cigarettesPerDay: e.target.value })}
+                                style={inputStyle}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Cigs Per Pack</label>
+                            <input
+                                type="number"
+                                placeholder="e.g. 20"
+                                value={formData.cigarettesPerPack}
+                                onChange={(e) => setFormData({ ...formData, cigarettesPerPack: e.target.value })}
+                                style={inputStyle}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style={labelStyle}>Cost Per Pack ($)</label>
+                        <input
+                            type="number"
+                            placeholder="e.g. 35.00"
+                            value={formData.packCost}
+                            onChange={(e) => setFormData({ ...formData, packCost: e.target.value })}
+                            style={inputStyle}
+                            required
+                        />
+                    </div>
+                </div>
+
                 <button
-                    onClick={handleScan}
+                    type="submit"
                     style={{
-                        background: 'var(--bg-tertiary)',
-                        color: 'var(--text-primary)',
+                        width: '100%',
+                        padding: '16px',
+                        background: 'linear-gradient(135deg, var(--primary), #0066CC)',
+                        color: 'white',
                         border: 'none',
                         borderRadius: 'var(--radius-md)',
-                        width: '48px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        fontSize: '1.1rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        marginTop: '1rem',
+                        boxShadow: '0 4px 20px var(--primary-glow)'
                     }}
                 >
-                    <Camera size={20} />
+                    Save Setup
                 </button>
-            </div>
-
-            {isScanning ? (
-                <div style={{ textAlign: 'center', padding: '2rem', border: '2px dashed var(--accent)', borderRadius: 'var(--radius-md)' }}>
-                    <p className="text-gradient" style={{ fontWeight: '600' }}>Scanning...</p>
-                </div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {filteredVapes.map(vape => (
-                        <button
-                            key={vape.id}
-                            onClick={() => onSelect(vape)}
-                            style={{
-                                background: 'var(--bg-primary)',
-                                padding: '16px',
-                                borderRadius: 'var(--radius-md)',
-                                textAlign: 'left',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                border: '1px solid transparent',
-                                transition: 'border-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
-                        >
-                            <div>
-                                <div style={{ fontWeight: '600' }}>{vape.name}</div>
-                                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{vape.flavor}</div>
-                            </div>
-                            {vape.puffs && (
-                                <span style={{ fontSize: '0.8rem', background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: '12px' }}>
-                                    {vape.puffs} puffs
-                                </span>
-                            )}
-                        </button>
-                    ))}
-                </div>
-            )}
+            </form>
         </div>
     );
 };

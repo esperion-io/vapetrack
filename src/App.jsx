@@ -17,8 +17,18 @@ function App() {
     onboardUser(data);
   };
 
-  const handleVapeSelect = (vape) => {
-    onboardUser({ ...user, currentVape: vape });
+  const handleVapeSelect = (vapeData) => {
+    // Destructure vape specific data and user habit data
+    const { cigarettesPerDay, cigarettesPerPack, packCost, ...currentVape } = vapeData;
+
+    onboardUser({
+      ...user,
+      currentVape,
+      // Update top-level user stats if provided
+      ...(cigarettesPerDay && { cigarettesPerDay }),
+      ...(cigarettesPerPack && { cigarettesPerPack }),
+      ...(packCost && { packCost })
+    });
   };
 
   if (!user) {
@@ -60,21 +70,21 @@ function App() {
       {/* Bottom Navigation */}
       <nav style={{
         position: 'fixed',
-        bottom: '1.5rem',
+        bottom: '2rem',
         left: '50%',
         transform: 'translateX(-50%)',
         width: 'calc(100% - 2rem)',
-        maxWidth: '440px',
-        background: 'rgba(30, 41, 59, 0.8)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '24px',
-        padding: '0.75rem 0.5rem',
+        maxWidth: '400px',
+        background: 'rgba(22, 31, 50, 0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '32px',
+        padding: '0.8rem 1rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.4)',
         zIndex: 100
       }}>
         <NavButton

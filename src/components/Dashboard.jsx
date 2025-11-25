@@ -19,14 +19,28 @@ const Dashboard = () => {
     });
 
     // Logic Update based on User Data:
-    // 1 Pack (20 cigs) = ~250 puffs (Volume)
-    // 1 Disposable (2ml, 20mg/ml) = ~600 puffs (Nicotine Equivalence to 20 cigs)
-    // Therefore:
-    // - To match Nicotine: 30 puffs = 1 cigarette (600 / 20)
-    // - To match Volume: 12.5 puffs = 1 cigarette (250 / 20)
+    // Nicotine Equivalence Calculation:
+    // - Average cigarette contains 12mg nicotine, but only 2mg is absorbed (rest goes up in smoke)
+    // - Vaping has 50% absorption rate
+    // - User gets approximately 150 puffs per ml of e-liquid
+    // - User's vape has X mg/ml nicotine strength
 
-    // We use Nicotine Equivalence for the health/habit tracker as it's the more important metric for tapering.
-    const PUFFS_PER_CIGARETTE = 30;
+    const PUFFS_PER_ML = 150; // User gets ~150 puffs per ml
+    const ABSORBED_NICOTINE_PER_CIGARETTE = 2; // mg absorbed from cigarette
+    const VAPE_ABSORPTION_RATE = 0.5; // 50% absorption when vaping
+
+    // Get user's vape nicotine strength
+    const vapeNicotine = Number(user?.currentVape?.nicotine) || 20; // mg/ml, default to 20mg/ml
+
+    // Calculate nicotine absorbed per puff
+    // Each puff = (1/150)ml of e-liquid
+    // Nicotine content per puff = (vapeNicotine mg/ml) × (1/150 ml)
+    // Absorbed nicotine per puff = nicotine content × 50% absorption
+    const nicotineContentPerPuff = vapeNicotine / PUFFS_PER_ML;
+    const absorbedNicotinePerPuff = nicotineContentPerPuff * VAPE_ABSORPTION_RATE;
+
+    // Calculate how many puffs equal one cigarette
+    const PUFFS_PER_CIGARETTE = Math.round(ABSORBED_NICOTINE_PER_CIGARETTE / absorbedNicotinePerPuff);
 
     const oldDailyNicotinePuffs = (user?.cigarettesPerDay || 10) * PUFFS_PER_CIGARETTE;
     const percentage = Math.round((todayLogs.length / oldDailyNicotinePuffs) * 100);
@@ -34,14 +48,20 @@ const Dashboard = () => {
 
     // Money Saved Logic (Dynamic)
     // Smoking Cost: Accumulates over time (Days * Daily Cost)
-    // Vaping Cost: Based on ACTUAL puffs (Total Puffs * Cost Per Puff)
-    // Cost Per Puff Assumption: $15/week for 20 cigs/day equivalent (600 puffs/day)
-    // $15 / 7 days / 600 puffs = $0.0035714 per puff
-    const COST_PER_PUFF = 0.0035714;
+    // Vaping Cost: Based on ACTUAL puffs and user's vape details
+    // Using same PUFFS_PER_ML (150) from nicotine calculation above
 
     const cigsPerDay = Number(user?.cigarettesPerDay) || 0;
     const cigsPerPack = Number(user?.cigarettesPerPack) || 20;
     const packCost = Number(user?.packCost) || 0;
+
+    // Vape details
+    const vapeSize = Number(user?.currentVape?.size) || 2; // ml
+    const vapeCost = Number(user?.currentVape?.cost) || 15; // cost per device/bottle
+
+    // Calculate cost per puff based on user's actual vape
+    const totalPuffsPerDevice = vapeSize * PUFFS_PER_ML;
+    const costPerPuff = vapeCost / totalPuffsPerDevice;
 
     const dailySmokingCost = (cigsPerDay / cigsPerPack) * packCost;
 
@@ -64,7 +84,7 @@ const Dashboard = () => {
 
             // Money Saved (Dynamic)
             const projectedSmokingCost = daysSince * dailySmokingCost;
-            const actualVapingCost = (logs || []).length * COST_PER_PUFF;
+            const actualVapingCost = (logs || []).length * costPerPuff;
             const netSavings = projectedSmokingCost - actualVapingCost;
 
             setRealTimeSavings(netSavings.toFixed(4));
@@ -73,7 +93,7 @@ const Dashboard = () => {
         updateStats();
         const interval = setInterval(updateStats, 100); // Faster update for smoother decimals
         return () => clearInterval(interval);
-    }, [user, logs, dailySmokingCost, cigsPerDay]);
+    }, [user, logs, dailySmokingCost, cigsPerDay, costPerPuff]);
 
     // Prepare Chart Data (Last 7 Days)
     const chartData = Array.from({ length: 7 }).map((_, i) => {
@@ -116,7 +136,6 @@ const Dashboard = () => {
 
     return (
         <div className="container">
-            <h2 style={{ marginBottom: '1.5rem' }}>Your Progress</h2>
 
             <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -133,7 +152,7 @@ const Dashboard = () => {
                     }} />
                 </div>
                 <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    {todayLogs.length} puffs vs ~{oldDailyNicotinePuffs} puffs (equivalent nicotine)
+                    {todayLogs.length} puffs vs {user?.cigarettesPerDay || 0} cigarettes
                 </p>
             </div>
 
@@ -157,7 +176,7 @@ const Dashboard = () => {
                         ~{vapedEquivalent} Cigarettes
                     </div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Based on 20mg/ml disposable (30 puffs ≈ 1 cig)
+                        Based on {vapeNicotine}mg/ml ({PUFFS_PER_CIGARETTE} puffs ≈ 1 cig)
                     </div>
                 </div>
             </div>

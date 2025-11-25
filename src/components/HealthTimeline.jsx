@@ -18,10 +18,6 @@ const HealthTimeline = () => {
 
     return (
         <div className="container">
-            <h2 style={{ marginBottom: '1.5rem' }}>Health Timeline</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                Your body starts recovering the moment you stop smoking cigarettes.
-            </p>
 
             <div style={{ position: 'relative', paddingLeft: '20px' }}>
                 {/* Vertical Line */}
