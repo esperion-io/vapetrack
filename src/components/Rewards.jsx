@@ -9,9 +9,6 @@ const REWARDS = [
     { id: 'icon_crown', name: '👑 Crown Icon', cost: 300, type: 'icon', icon: '👑', description: 'Royal crown icon' },
     { id: 'border_gold', name: '✨ Gold Border', cost: 250, type: 'border', description: 'Shining gold profile border' },
     { id: 'border_rainbow', name: '🌟 Rainbow Border', cost: 400, type: 'border', description: 'Animated rainbow border' },
-    { id: 'effect_smoke', name: '💨 Smoke Effect', cost: 300, type: 'effect', description: 'Button smokes when pressed' },
-    { id: 'effect_sparkle', name: '✨ Sparkle Effect', cost: 350, type: 'effect', description: 'Sparkles on button press' },
-    { id: 'effect_confetti', name: '🎉 Confetti Effect', cost: 500, type: 'effect', description: 'Confetti burst on press' },
 ];
 
 const Rewards = () => {
@@ -38,7 +35,6 @@ const Rewards = () => {
     const groupedRewards = {
         icons: REWARDS.filter(r => r.type === 'icon'),
         borders: REWARDS.filter(r => r.type === 'border'),
-        effects: REWARDS.filter(r => r.type === 'effect'),
     };
 
     return (
@@ -161,68 +157,6 @@ const Rewards = () => {
                                     }}
                                 >
                                     {equippedRewards.border === reward.id ? 'Equipped ✓' : 'Equip'}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => handlePurchase(reward)}
-                                    disabled={!canAfford}
-                                    style={{
-                                        padding: '8px 16px',
-                                        background: canAfford ? 'var(--primary)' : 'var(--bg-tertiary)',
-                                        color: canAfford ? '#fff' : 'var(--text-secondary)',
-                                        border: 'none',
-                                        borderRadius: '20px',
-                                        fontWeight: '600',
-                                        fontSize: '0.9rem',
-                                        cursor: canAfford ? 'pointer' : 'not-allowed',
-                                        opacity: canAfford ? 1 : 0.5
-                                    }}
-                                >
-                                    {reward.cost} XP
-                                </button>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Button Effects */}
-            <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Zap size={20} color="var(--accent)" /> Button Effects
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {groupedRewards.effects.map(reward => {
-                    const isPurchased = purchasedRewards.includes(reward.id);
-                    const canAfford = xp >= reward.cost;
-
-                    return (
-                        <div key={reward.id} className="card" style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '1rem',
-                            background: isPurchased ? 'rgba(45, 212, 191, 0.1)' : 'var(--bg-secondary)',
-                            opacity: isPurchased ? 0.6 : 1
-                        }}>
-                            <div>
-                                <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{reward.name}</div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{reward.description}</div>
-                            </div>
-                            {isPurchased ? (
-                                <button
-                                    onClick={() => handleEquip(reward)}
-                                    style={{
-                                        padding: '8px 16px',
-                                        background: equippedRewards.effect === reward.id ? 'var(--success)' : 'var(--bg-tertiary)',
-                                        color: '#fff',
-                                        border: 'none',
-                                        borderRadius: '20px',
-                                        fontSize: '0.85rem',
-                                        fontWeight: '600',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {equippedRewards.effect === reward.id ? 'Equipped ✓' : 'Equip'}
                                 </button>
                             ) : (
                                 <button
