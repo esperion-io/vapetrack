@@ -1,8 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('vapetrack_user');
     return saved ? JSON.parse(saved) : {
@@ -21,7 +25,9 @@ export const UserProvider = ({ children }) => {
       },
       juiceLevel: 100,
       bottleSize: 2,
-      xp: 0
+      xp: 0,
+      isSmokeFree: false,
+      smokeFreeStartTime: null
     };
   });
 
@@ -62,14 +68,181 @@ export const UserProvider = ({ children }) => {
   // XP is now part of user object, but we keep this for backward compatibility if needed
   const xp = user.xp || 0;
 
+  // Supabase Auth & Sync
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) loadUserData(session.user.id);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        loadUserData(session.user.id);
+      } else {
+        // Optional: Clear data on sign out or keep local?
+        // For now, we keep local data to avoid jarring resets, 
+        // or we could trigger clearData() if we want strict separation.
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadUserData = async (userId) => {
+    try {
+      // Get the current session to access user email
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const userEmail = currentSession?.user?.email || '';
+
+      // 1. Fetch Profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profile && profile.data) {
+        // Profile exists, load it and merge with email from auth
+        setUser(prev => ({
+          ...prev,
+          ...profile.data,
+          email: userEmail,
+          name: profile.data.name || profile.username || prev.name
+        }));
+        // If profile has other jsonb fields, load them
+        if (profile.settings) {
+          // Load settings if any
+        }
+      } else if (profileError && profileError.code === 'PGRST116') {
+        // Profile doesn't exist, create it from current user state + auth email
+        const newProfile = {
+          ...user,
+          email: userEmail
+        };
+        setUser(prev => ({ ...prev, email: userEmail }));
+        await syncUserToSupabase(newProfile, userId);
+      }
+
+      // 2. Fetch Logs
+      const { data: remoteLogs, error: logsError } = await supabase
+        .from('logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: true });
+
+      if (remoteLogs && remoteLogs.length > 0) {
+        setLogs(remoteLogs);
+      }
+
+      // 3. Fetch Rewards/Purchases (assuming stored in profile.data or separate table)
+      // For MVP, we'll assume they are part of the profile 'data' JSONB column or similar
+      // If we want to be robust, we should have tables. 
+      // For now, let's stick to syncing the main user object which contains XP.
+
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const syncUserToSupabase = async (userData, userId = session?.user?.id) => {
+    if (!userId) return;
+    try {
+      const updates = {
+        id: userId,
+        username: userData.name,
+        email: userData.email,
+        data: userData, // Store full user object as JSONB
+        updated_at: new Date(),
+      };
+
+      const { error } = await supabase.from('profiles').upsert(updates);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error syncing user:', error);
+    }
+  };
+
+  const syncLogToSupabase = async (log, enrichedData = {}) => {
+    if (!session?.user?.id) return;
+    try {
+      // Get device type
+      const getDeviceType = () => {
+        const ua = navigator.userAgent;
+        if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+          return 'tablet';
+        }
+        if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
+          return 'mobile';
+        }
+        return 'desktop';
+      };
+
+      // Calculate time since last puff
+      const timeSinceLastPuff = logs.length > 0
+        ? new Date(log.timestamp) - new Date(logs[logs.length - 1].timestamp)
+        : null;
+
+      // Get current day and hour
+      const logDate = new Date(log.timestamp);
+      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+      // Count today's puffs
+      const today = new Date();
+      const todayPuffs = logs.filter(l => {
+        const d = new Date(l.timestamp);
+        return d.toDateString() === today.toDateString();
+      }).length + 1; // +1 for current puff
+
+      const enrichedLog = {
+        user_id: session.user.id,
+        timestamp: log.timestamp,
+        type: enrichedData.type || 'puff',
+
+        // Vape context
+        vape_name: user.currentVape?.name || null,
+        vape_nicotine: user.currentVape?.nicotine || null,
+        juice_level_before: enrichedData.juice_level_before || user.juiceLevel,
+        juice_level_after: enrichedData.juice_level_after || user.juiceLevel,
+
+        // Session context
+        day_of_week: daysOfWeek[logDate.getDay()],
+        hour_of_day: logDate.getHours(),
+        time_since_last_puff_ms: timeSinceLastPuff,
+
+        // User state
+        user_xp: user.xp || 0,
+        daily_puff_count: todayPuffs,
+        streak_days: enrichedData.streak_days || 0,
+
+        // Device info
+        user_agent: navigator.userAgent,
+        device_type: getDeviceType(),
+
+        // Additional metadata
+        metadata: enrichedData.metadata || {}
+      };
+
+      const { error } = await supabase.from('logs').insert([enrichedLog]);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error syncing log:', error);
+    }
+  };
+
+  // Persist to LocalStorage
   useEffect(() => {
     localStorage.setItem('vapetrack_user', JSON.stringify(user));
-  }, [user]);
+    if (session) syncUserToSupabase(user);
+  }, [user, session]);
 
   useEffect(() => {
     localStorage.setItem('vapetrack_logs', JSON.stringify(logs));
     checkBadges(logs);
-    checkDailyXP(logs); // Check if we need to award XP
+    checkDailyXP(logs);
   }, [logs]);
 
   useEffect(() => {
@@ -149,8 +322,22 @@ export const UserProvider = ({ children }) => {
   const addLog = () => {
     const newLog = { timestamp: new Date().toISOString() };
     setLogs(prev => [...prev, newLog]);
-    // XP is now calculated at end of day, not per puff
+    if (session) syncLogToSupabase(newLog);
+
+    // Revert smoke-free status if user logs a vape
+    if (user.isSmokeFree) {
+      setUser(prev => ({ ...prev, isSmokeFree: false, smokeFreeStartTime: null }));
+    }
   };
+
+  const toggleSmokeFree = () => {
+    setUser(prev => ({
+      ...prev,
+      isSmokeFree: !prev.isSmokeFree,
+      smokeFreeStartTime: !prev.isSmokeFree ? new Date().toISOString() : null
+    }));
+  };
+
 
   const updateJuiceLevel = (newLevel) => {
     const diff = user.juiceLevel - newLevel;
@@ -164,6 +351,11 @@ export const UserProvider = ({ children }) => {
         timestamp: new Date().toISOString()
       }));
       setLogs(prev => [...prev, ...newLogs]);
+
+      // Sync new logs to Supabase
+      if (session) {
+        newLogs.forEach(log => syncLogToSupabase(log));
+      }
 
       // Update XP
       setUser(prev => ({ ...prev, xp: (prev.xp || 0) + (puffsToAdd * 10) }));
@@ -192,6 +384,21 @@ export const UserProvider = ({ children }) => {
     }
 
     setJuicePurchases(prev => [...prev, newPurchase]);
+
+    // Log juice purchase to Supabase
+    if (session) {
+      syncLogToSupabase(
+        { timestamp: newPurchase.timestamp },
+        {
+          type: 'juice_purchase',
+          metadata: {
+            puffs_since_last: newPurchase.puffsSinceLast,
+            bottle_size: user.bottleSize,
+            vape_cost: user.currentVape?.cost
+          }
+        }
+      );
+    }
   };
 
   const checkBadges = (currentLogs) => {
@@ -230,7 +437,10 @@ export const UserProvider = ({ children }) => {
     }));
   };
 
-  const clearData = () => {
+  const clearData = async () => {
+    if (session) {
+      await supabase.auth.signOut();
+    }
     localStorage.removeItem('vapetrack_user');
     localStorage.removeItem('vapetrack_logs');
     localStorage.removeItem('vapetrack_badges');
@@ -248,7 +458,9 @@ export const UserProvider = ({ children }) => {
       currentVape: null,
       juiceLevel: 100,
       bottleSize: 2,
-      xp: 0
+      xp: 0,
+      isSmokeFree: false,
+      smokeFreeStartTime: null
     });
     setLogs([]);
     setBadges([]);
@@ -256,6 +468,51 @@ export const UserProvider = ({ children }) => {
     setPurchasedRewards([]);
     setEquippedRewards({ icon: null, border: null, effect: null });
     setLastXPCalculation(null);
+  };
+
+  // Auth functions
+  const signIn = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  };
+
+  const signUp = async (email, password, username) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username },
+          emailRedirectTo: window.location.origin
+        }
+      });
+
+      if (error) throw error;
+
+      // Update local user state with username and email immediately
+      if (data.user) {
+        setUser(prev => ({
+          ...prev,
+          name: username,
+          email: email
+        }));
+
+        // Create initial profile
+        const profileData = { ...user, name: username, email: email };
+        await syncUserToSupabase(profileData, data.user.id);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Signup error:', error);
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    clearData();
   };
 
   return (
@@ -267,6 +524,11 @@ export const UserProvider = ({ children }) => {
       juicePurchases,
       purchasedRewards,
       equippedRewards,
+      session,
+      loading,
+      signIn,
+      signUp,
+      signOut,
       onboardUser,
       updateUser,
       addLog,
@@ -275,6 +537,7 @@ export const UserProvider = ({ children }) => {
       purchaseReward,
       equipReward,
       unequipReward,
+      toggleSmokeFree,
       clearData
     }}>
       {children}

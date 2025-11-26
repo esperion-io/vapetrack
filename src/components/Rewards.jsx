@@ -2,32 +2,57 @@ import { useUser } from '../context/UserContext';
 import { Award, Sparkles, Zap, Crown, Star, Heart, Flame, CloudRain, Rainbow, Smile } from 'lucide-react';
 
 const REWARDS = [
-    { id: 'icon_star', name: '⭐ Star Icon', cost: 100, type: 'icon', icon: '⭐', description: 'Shiny star profile icon' },
-    { id: 'icon_fire', name: '🔥 Fire Icon', cost: 150, type: 'icon', icon: '🔥', description: 'Hot fire profile icon' },
-    { id: 'icon_cloud', name: '☁️ Cloud Icon', cost: 150, type: 'icon', icon: '☁️', description: 'Fluffy cloud profile icon' },
-    { id: 'icon_rainbow', name: '🌈 Rainbow Icon', cost: 200, type: 'icon', icon: '🌈', description: 'Colorful rainbow icon' },
-    { id: 'icon_crown', name: '👑 Crown Icon', cost: 300, type: 'icon', icon: '👑', description: 'Royal crown icon' },
-    { id: 'border_gold', name: '✨ Gold Border', cost: 250, type: 'border', description: 'Shining gold profile border' },
-    { id: 'border_rainbow', name: '🌟 Rainbow Border', cost: 400, type: 'border', description: 'Animated rainbow border' },
+    { id: 'icon_star', name: '⭐ Star Icon', cost: 500, type: 'icon', icon: '⭐', description: 'Shiny star profile icon' },
+    { id: 'icon_fire', name: '🔥 Fire Icon', cost: 1000, type: 'icon', icon: '🔥', description: 'Hot fire profile icon' },
+    { id: 'icon_cloud', name: '☁️ Cloud Icon', cost: 1500, type: 'icon', icon: '☁️', description: 'Fluffy cloud profile icon' },
+    { id: 'icon_rainbow', name: '🌈 Rainbow Icon', cost: 2500, type: 'icon', icon: '🌈', description: 'Colorful rainbow icon' },
+    { id: 'icon_bear', name: '🧸 Cute Bear', cost: 3000, type: 'icon', icon: '🧸', description: 'Adorable teddy bear icon' },
+    { id: 'icon_rocket', name: '🚀 Rocket', cost: 4000, type: 'icon', icon: '🚀', description: 'To the moon!' },
+    { id: 'icon_gangster_bear', name: '😎 Cool Bear', cost: 5000, type: 'icon', icon: '😎', description: 'Gangster teddy bear' },
+    { id: 'icon_crown', name: '👑 Crown Icon', cost: 6000, type: 'icon', icon: '👑', description: 'Royal crown icon' },
+    { id: 'border_gold', name: '✨ Gold Border', cost: 7500, type: 'border', description: 'Shining gold profile border' },
+    { id: 'border_rainbow', name: '🌟 Rainbow Border', cost: 10000, type: 'border', description: 'Animated rainbow border' },
 ];
 
 const Rewards = () => {
-    const { xp, purchasedRewards, equippedRewards, purchaseReward, equipReward, unequipReward } = useUser();
+    const { user, logs, xp, purchasedRewards, equippedRewards, purchaseReward, equipReward, unequipReward } = useUser();
+
+    // Calculate Projected XP for Today
+    const calculateProjectedXP = () => {
+        const now = new Date();
+        const todayLogs = logs.filter(log => {
+            const logDate = new Date(log.timestamp);
+            return logDate.toDateString() === now.toDateString();
+        });
+
+        const PUFFS_PER_ML = 150;
+        const ABSORBED_NICOTINE_PER_CIGARETTE = 2;
+        const VAPE_ABSORPTION_RATE = 0.5;
+        const vapeNicotine = Number(user?.currentVape?.nicotine) || 20;
+        const nicotineContentPerPuff = vapeNicotine / PUFFS_PER_ML;
+        const absorbedNicotinePerPuff = nicotineContentPerPuff * VAPE_ABSORPTION_RATE;
+        const PUFFS_PER_CIGARETTE = Math.round(ABSORBED_NICOTINE_PER_CIGARETTE / absorbedNicotinePerPuff);
+        const oldDailyNicotinePuffs = (user?.cigarettesPerDay || 10) * PUFFS_PER_CIGARETTE;
+
+        const percentage = (todayLogs.length / oldDailyNicotinePuffs) * 100;
+
+        if (percentage >= 100) return 0;
+        return Math.round((100 - percentage) * 10);
+    };
+
+    const projectedXP = calculateProjectedXP();
 
     const handlePurchase = (reward) => {
         const success = purchaseReward(reward.id, reward.cost);
         if (success) {
-            // Could add a success notification here
             console.log(`Purchased ${reward.name}!`);
         }
     };
 
     const handleEquip = (reward) => {
         if (equippedRewards[reward.type] === reward.id) {
-            // Unequip if already equipped
             unequipReward(reward.type);
         } else {
-            // Equip
             equipReward(reward.id, reward.type);
         }
     };
@@ -39,19 +64,38 @@ const Rewards = () => {
 
     return (
         <div className="container">
-            <div style={{
-                background: 'linear-gradient(135deg, var(--accent), #67e8f9)',
-                padding: '2rem',
-                borderRadius: 'var(--radius-md)',
+            <div className="card" style={{
                 marginBottom: '2rem',
-                color: '#000',
-                textAlign: 'center'
+                textAlign: 'center',
+                background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary))',
+                border: '1px solid var(--primary-glow)',
+                position: 'relative',
+                overflow: 'hidden'
             }}>
-                <h2 style={{ fontSize: '2.5rem', fontWeight: '800' }}>{xp} XP</h2>
-                <p style={{ fontWeight: '600', opacity: 0.8 }}>LEVEL {Math.floor(xp / 100) + 1}</p>
-                <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.7 }}>
-                    Earn XP by staying below your old habit each day
-                </p>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                    <h2 style={{ fontSize: '3rem', fontWeight: '800', marginBottom: '0.5rem', color: 'var(--primary)' }}>{xp} XP</h2>
+                    <p style={{ fontWeight: '700', opacity: 0.8, letterSpacing: '1px', color: 'var(--text-secondary)' }}>LEVEL {Math.floor(xp / 1000) + 1}</p>
+
+                    <div style={{
+                        marginTop: '1.5rem',
+                        background: 'var(--bg-primary)',
+                        padding: '1rem',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--bg-tertiary)'
+                    }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
+                            Projected XP Today
+                        </div>
+                        <div style={{ fontSize: '2rem', fontWeight: '800', color: projectedXP > 0 ? 'var(--text-primary)' : '#ef4444' }}>
+                            +{projectedXP}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                            {projectedXP > 0
+                                ? "Keep your puffs low to secure this!"
+                                : "Daily limit reached. No XP today."}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Profile Icons */}

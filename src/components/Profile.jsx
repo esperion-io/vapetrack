@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Mail, Lock, ArrowRight, Share2, Twitter, Facebook, Copy } from 'lucide-react';
 
 // Import rewards data to display icons
 const REWARDS = [
@@ -8,17 +8,225 @@ const REWARDS = [
     { id: 'icon_fire', icon: '🔥' },
     { id: 'icon_cloud', icon: '☁️' },
     { id: 'icon_rainbow', icon: '🌈' },
+    { id: 'icon_bear', icon: '🧸' },
+    { id: 'icon_rocket', icon: '🚀' },
+    { id: 'icon_gangster_bear', icon: '😎' },
     { id: 'icon_crown', icon: '👑' }
 ];
 
+const AuthForm = () => {
+    const { signIn, signUp, clearData } = useUser();
+    const [isLogin, setIsLogin] = useState(true);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('');
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState(null);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(null);
+        setSuccessMessage(null);
+        setLoading(true);
+        try {
+            if (isLogin) {
+                await signIn(email, password);
+            } else {
+                const result = await signUp(email, password, username);
+                // Check if email confirmation is required
+                if (result.user && !result.session) {
+                    setSuccessMessage('Account created! Please check your email (including spam folder) to confirm your account.');
+                } else if (result.session) {
+                    // User is auto-confirmed and logged in
+                    setSuccessMessage('Account created successfully! You are now logged in.');
+                }
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+            <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
+                <h2 style={{ textAlign: 'center', marginBottom: '2rem', fontSize: '1.8rem', fontWeight: '800' }}>
+                    {isLogin ? 'Welcome Back' : 'Create Account'}
+                </h2>
+
+                {error && (
+                    <div style={{
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        color: '#ef4444',
+                        padding: '1rem',
+                        borderRadius: 'var(--radius-sm)',
+                        marginBottom: '1rem',
+                        fontSize: '0.9rem'
+                    }}>
+                        {error}
+                    </div>
+                )}
+
+                {successMessage && (
+                    <div style={{
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        color: '#10b981',
+                        padding: '1rem',
+                        borderRadius: 'var(--radius-sm)',
+                        marginBottom: '1rem',
+                        fontSize: '0.9rem'
+                    }}>
+                        {successMessage}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {!isLogin && (
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Username</label>
+                            <div style={{ position: 'relative' }}>
+                                <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    required={!isLogin}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px 12px 12px 40px',
+                                        background: 'var(--bg-primary)',
+                                        border: '1px solid var(--bg-tertiary)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        color: 'var(--text-primary)'
+                                    }}
+                                    placeholder="Username"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Email</label>
+                        <div style={{ position: 'relative' }}>
+                            <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 12px 12px 40px',
+                                    background: 'var(--bg-primary)',
+                                    border: '1px solid var(--bg-tertiary)',
+                                    borderRadius: 'var(--radius-sm)',
+                                    color: 'var(--text-primary)'
+                                }}
+                                placeholder="name@example.com"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Password</label>
+                        <div style={{ position: 'relative' }}>
+                            <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 12px 12px 40px',
+                                    background: 'var(--bg-primary)',
+                                    border: '1px solid var(--bg-tertiary)',
+                                    borderRadius: 'var(--radius-sm)',
+                                    color: 'var(--text-primary)'
+                                }}
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        style={{
+                            marginTop: '1rem',
+                            padding: '14px',
+                            background: 'var(--primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 'var(--radius-sm)',
+                            fontWeight: '600',
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            opacity: loading ? 0.7 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
+                        {!loading && <ArrowRight size={18} />}
+                    </button>
+                </form>
+
+                <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    {isLogin ? "Don't have an account? " : "Already have an account? "}
+                    <button
+                        onClick={() => setIsLogin(!isLogin)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--accent)',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            padding: 0
+                        }}
+                    >
+                        {isLogin ? 'Sign Up' : 'Sign In'}
+                    </button>
+                </div>
+
+                <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--bg-tertiary)', textAlign: 'center' }}>
+                    <button
+                        onClick={() => {
+                            if (window.confirm('Are you sure? This will delete all local data.')) {
+                                clearData();
+                                window.location.reload();
+                            }
+                        }}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            textDecoration: 'underline'
+                        }}
+                    >
+                        Reset Local Guest Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const Profile = () => {
-    const { user, updateUser, clearData, equippedRewards } = useUser();
+    const { user, session, updateUser, signOut, equippedRewards, toggleSmokeFree } = useUser();
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(user.name || '');
     const [email, setEmail] = useState(user.email || '');
     const [cigsPerDay, setCigsPerDay] = useState(user.cigarettesPerDay || '');
     const [cigsPerPack, setCigsPerPack] = useState(user.cigarettesPerPack || '');
     const [packCost, setPackCost] = useState(user.packCost || '');
+    const [smokeFreeTime, setSmokeFreeTime] = useState('');
+    const [copySuccess, setCopySuccess] = useState(false);
 
     // Local state for vape details
     const [vapeName, setVapeName] = useState(user.currentVape?.name || '');
@@ -26,6 +234,67 @@ const Profile = () => {
     const [vapeSize, setVapeSize] = useState(user.currentVape?.size || '');
     const [vapeNicotine, setVapeNicotine] = useState(user.currentVape?.nicotine || '');
     const [vapeCost, setVapeCost] = useState(user.currentVape?.cost || '');
+
+    // Sync email and name when user context updates (e.g., after login)
+    useEffect(() => {
+        setEmail(user.email || '');
+        setName(user.name || '');
+    }, [user.email, user.name]);
+
+    // Update smoke-free timer
+    useEffect(() => {
+        if (!user.isSmokeFree || !user.smokeFreeStartTime) return;
+
+        const updateTimer = () => {
+            const start = new Date(user.smokeFreeStartTime);
+            const now = new Date();
+            const diff = now - start;
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            if (days > 0) {
+                setSmokeFreeTime(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+            } else if (hours > 0) {
+                setSmokeFreeTime(`${hours}h ${minutes}m ${seconds}s`);
+            } else {
+                setSmokeFreeTime(`${minutes}m ${seconds}s`);
+            }
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [user.isSmokeFree, user.smokeFreeStartTime]);
+
+    const shareMessage = `🎉 I've been smoke-free for ${smokeFreeTime}! Join me on my journey with VapeTrack! 💪`;
+
+    const handleShare = (platform) => {
+        const url = window.location.href;
+        const encodedMessage = encodeURIComponent(shareMessage);
+        const encodedUrl = encodeURIComponent(url);
+
+        switch (platform) {
+            case 'twitter':
+                window.open(`https://twitter.com/intent/tweet?text=${encodedMessage}&url=${encodedUrl}`, '_blank');
+                break;
+            case 'facebook':
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedMessage}`, '_blank');
+                break;
+            case 'copy':
+                navigator.clipboard.writeText(shareMessage).then(() => {
+                    setCopySuccess(true);
+                    setTimeout(() => setCopySuccess(false), 2000);
+                });
+                break;
+        }
+    };
+
+    if (!session) {
+        return <AuthForm />;
+    }
 
     const handleSave = () => {
         updateUser({
@@ -67,43 +336,200 @@ const Profile = () => {
 
     return (
         <div className="container">
+            {/* Golden Smoke-Free Button */}
+            {!user.isSmokeFree && (
+                <button
+                    onClick={toggleSmokeFree}
+                    style={{
+                        width: '100%',
+                        padding: '20px',
+                        marginBottom: '2rem',
+                        background: 'linear-gradient(135deg, #FFD700, #FFA500, #FFD700)',
+                        backgroundSize: '200% 200%',
+                        animation: 'goldenShimmer 3s ease infinite',
+                        border: '2px solid #FFD700',
+                        borderRadius: 'var(--radius-md)',
+                        color: '#000',
+                        fontSize: '1.2rem',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        boxShadow: '0 8px 30px rgba(255, 215, 0, 0.5), inset 0 2px 10px rgba(255, 255, 255, 0.5)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px'
+                    }}
+                >
+                    <span style={{ position: 'relative', zIndex: 1 }}>✨ I Have Stopped Smoking ✨</span>
+                </button>
+            )}
 
-            <div className="card" style={{ marginBottom: '2rem', textAlign: 'center' }}>
+            <div className="card" style={{
+                marginBottom: '2rem',
+                textAlign: 'center',
+                ...(user.isSmokeFree && {
+                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                    border: '3px solid #FFD700',
+                    boxShadow: '0 10px 40px rgba(255, 215, 0, 0.6)',
+                })
+            }}>
                 <div style={{
                     width: '80px',
                     height: '80px',
                     borderRadius: '50%',
-                    background: 'var(--bg-tertiary)',
+                    background: user.isSmokeFree ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'var(--bg-tertiary)',
                     margin: '0 auto 1rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '2.5rem',
-                    border: equippedRewards.border === 'border_gold'
+                    border: equippedRewards.border === 'border_gold' || user.isSmokeFree
                         ? '3px solid gold'
                         : equippedRewards.border === 'border_rainbow'
                             ? '3px solid transparent'
                             : 'none',
-                    backgroundImage: equippedRewards.border === 'border_rainbow'
+                    backgroundImage: equippedRewards.border === 'border_rainbow' && !user.isSmokeFree
                         ? 'linear-gradient(var(--bg-tertiary), var(--bg-tertiary)), linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet)'
                         : 'none',
                     backgroundOrigin: 'border-box',
                     backgroundClip: 'padding-box, border-box',
-                    boxShadow: equippedRewards.border === 'border_gold'
+                    boxShadow: equippedRewards.border === 'border_gold' || user.isSmokeFree
                         ? '0 0 20px rgba(255, 215, 0, 0.5)'
                         : equippedRewards.border === 'border_rainbow'
                             ? '0 0 20px rgba(255, 255, 255, 0.3)'
                             : 'none'
                 }}>
                     {equippedRewards.icon ? (
-                        REWARDS.find(r => r.id === equippedRewards.icon)?.icon || <User size={40} color="var(--text-secondary)" />
+                        REWARDS.find(r => r.id === equippedRewards.icon)?.icon || <User size={40} color={user.isSmokeFree ? '#000' : 'var(--text-secondary)'} />
                     ) : (
-                        <User size={40} color="var(--text-secondary)" />
+                        <User size={40} color={user.isSmokeFree ? '#000' : 'var(--text-secondary)'} />
                     )}
                 </div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: '600' }}>{user.name}</h3>
-                <p style={{ color: 'var(--text-secondary)' }}>{user.email || 'No email linked'}</p>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '600', color: user.isSmokeFree ? '#000' : 'inherit' }}>{user.name}</h3>
+                <p style={{ color: user.isSmokeFree ? 'rgba(0,0,0,0.7)' : 'var(--text-secondary)' }}>{user.email || 'No email linked'}</p>
+
+                {user.isSmokeFree && (
+                    <>
+                        <div style={{
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            background: 'rgba(255, 255, 255, 0.3)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontWeight: '700',
+                            color: '#000',
+                            fontSize: '1.1rem'
+                        }}>
+                            🎉 SMOKE-FREE CHAMPION 🎉
+                        </div>
+
+                        {/* XP Display */}
+                        <div style={{
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            background: 'rgba(0, 0, 0, 0.15)',
+                            borderRadius: 'var(--radius-sm)',
+                        }}>
+                            <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#000', marginBottom: '0.25rem', opacity: 0.8 }}>
+                                TOTAL XP
+                            </div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#000' }}>
+                                {user.xp} XP
+                            </div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#000', marginTop: '0.25rem', opacity: 0.7 }}>
+                                Level {Math.floor(user.xp / 1000) + 1}
+                            </div>
+                        </div>
+
+                        {/* Smoke-Free Timer */}
+                        <div style={{
+                            marginTop: '1rem',
+                            padding: '1.5rem',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            borderRadius: 'var(--radius-sm)',
+                        }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#000', marginBottom: '0.5rem' }}>
+                                SMOKE-FREE FOR
+                            </div>
+                            <div style={{ fontSize: '2rem', fontWeight: '800', color: '#000', fontFamily: 'monospace' }}>
+                                {smokeFreeTime}
+                            </div>
+                        </div>
+
+                        {/* Social Sharing */}
+                        <div style={{
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            background: 'rgba(255, 255, 255, 0.2)',
+                            borderRadius: 'var(--radius-sm)',
+                        }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#000', marginBottom: '0.75rem' }}>
+                                SHARE YOUR SUCCESS
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                <button
+                                    onClick={() => handleShare('twitter')}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: '#1DA1F2',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        fontWeight: '600',
+                                        fontSize: '0.85rem'
+                                    }}
+                                >
+                                    <Twitter size={16} />
+                                    Twitter
+                                </button>
+                                <button
+                                    onClick={() => handleShare('facebook')}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: '#1877F2',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        fontWeight: '600',
+                                        fontSize: '0.85rem'
+                                    }}
+                                >
+                                    <Facebook size={16} />
+                                    Facebook
+                                </button>
+                                <button
+                                    onClick={() => handleShare('copy')}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: copySuccess ? '#10b981' : 'rgba(0, 0, 0, 0.3)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        fontWeight: '600',
+                                        fontSize: '0.85rem',
+                                        transition: 'background 0.3s'
+                                    }}
+                                >
+                                    <Copy size={16} />
+                                    {copySuccess ? 'Copied!' : 'Copy'}
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
+
 
             <div className="card" style={{ marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -141,16 +567,15 @@ const Profile = () => {
                         <input
                             type="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={!isEditing}
-                            placeholder="Enter email to sync (Mock)"
+                            disabled
                             style={{
                                 width: '100%',
                                 padding: '12px',
-                                background: isEditing ? 'var(--bg-primary)' : 'transparent',
-                                border: isEditing ? '1px solid var(--bg-tertiary)' : 'none',
+                                background: 'transparent',
+                                border: 'none',
                                 borderRadius: 'var(--radius-sm)',
-                                color: 'var(--text-primary)'
+                                color: 'var(--text-primary)',
+                                opacity: 0.7
                             }}
                         />
                     </div>
@@ -353,33 +778,35 @@ const Profile = () => {
                 )}
             </div>
 
-            {isEditing && (
-                <button
-                    onClick={handleSave}
-                    style={{
-                        width: '100%',
-                        padding: '16px',
-                        background: 'linear-gradient(135deg, var(--primary), #0066CC)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 'var(--radius-md)',
-                        fontSize: '1.1rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        marginBottom: '1rem',
-                        boxShadow: '0 4px 20px var(--primary-glow)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                    }}
-                >
-                    Save Changes
-                </button>
-            )}
+            {
+                isEditing && (
+                    <button
+                        onClick={handleSave}
+                        style={{
+                            width: '100%',
+                            padding: '16px',
+                            background: 'linear-gradient(135deg, var(--primary), #0066CC)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 'var(--radius-md)',
+                            fontSize: '1.1rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            marginBottom: '1rem',
+                            boxShadow: '0 4px 20px var(--primary-glow)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        Save Changes
+                    </button>
+                )
+            }
 
             <button
-                onClick={clearData}
+                onClick={signOut}
                 style={{
                     width: '100%',
                     padding: '16px',
@@ -393,9 +820,9 @@ const Profile = () => {
                     fontWeight: '600'
                 }}
             >
-                <LogOut size={20} /> Sign Out / Reset
+                <LogOut size={20} /> Sign Out
             </button>
-        </div>
+        </div >
     );
 };
 

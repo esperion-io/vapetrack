@@ -236,7 +236,12 @@ const Tracker = () => {
                         <div className="glass-panel" style={{ padding: '1.2rem', textAlign: 'center', background: 'linear-gradient(145deg, var(--bg-secondary), var(--bg-primary))' }}>
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Daily Avg</div>
                             <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#fff' }}>
-                                82 puffs
+                                {(() => {
+                                    if (logs.length === 0) return '0 puffs';
+                                    const uniqueDays = new Set(logs.map(log => new Date(log.timestamp).toDateString())).size;
+                                    const avg = Math.round(logs.length / (uniqueDays || 1));
+                                    return `${avg} puffs`;
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -341,6 +346,26 @@ const Tracker = () => {
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Average Puffs Per Juice</div>
                                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--accent)' }}>
                                     {Math.round(juicePurchases.reduce((sum, p) => sum + p.puffsSinceLast, 0) / juicePurchases.length)}
+                                </div>
+                            </div>
+
+                            <div className="glass-panel" style={{ padding: '1rem', marginTop: '1rem', textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Average Time Between Bottles</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--accent)' }}>
+                                    {(() => {
+                                        if (juicePurchases.length < 2) return 'N/A';
+                                        const first = new Date(juicePurchases[0].timestamp);
+                                        const last = new Date(juicePurchases[juicePurchases.length - 1].timestamp);
+                                        const diffMs = last - first;
+                                        const avgMs = diffMs / (juicePurchases.length - 1);
+                                        const days = Math.round(avgMs / (1000 * 60 * 60 * 24));
+
+                                        if (days < 1) {
+                                            const hours = Math.round(avgMs / (1000 * 60 * 60));
+                                            return `${hours} hours`;
+                                        }
+                                        return `${days} days`;
+                                    })()}
                                 </div>
                             </div>
                         </div>

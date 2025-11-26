@@ -58,7 +58,7 @@ select {
 
 .container {
   padding: 1.5rem;
-  padding-bottom: 6rem;
+  padding-bottom: 8rem;
   /* Space for bottom nav */
 }
 
@@ -160,5 +160,19 @@ select {
   100% {
     opacity: 0;
     transform: translate(var(--tx, 0), var(--ty, 100px)) rotate(720deg);
+  }
+}
+
+@keyframes goldenShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
   }
 }
